@@ -1,9 +1,13 @@
 import React, { useState } from 'react';
-import { ChevronRight, ChevronLeft, Send, CheckCircle, Briefcase, Palette, Layers, FolderOpen, Calendar } from 'lucide-react';
+import { ChevronRight, ChevronLeft, Send, CheckCircle, Briefcase, Palette, Layers, FolderOpen, Calendar, Loader2 } from 'lucide-react';
+
+const SCRIPT_URL = import.meta.env.VITE_GOOGLE_SCRIPT_URL;
 
 export default function App() {
   const [step, setStep] = useState(1);
   const [isSubmitted, setIsSubmitted] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [submitError, setSubmitError] = useState('');
 
   const [formData, setFormData] = useState({
     // Step 1
@@ -54,9 +58,28 @@ export default function App() {
 
   const nextStep = () => setStep(prev => Math.min(prev + 1, totalSteps));
   const prevStep = () => setStep(prev => Math.max(prev - 1, 1));
-  const submitForm = () => {
-    console.log('제출된 데이터:', formData);
-    setIsSubmitted(true);
+
+  const submitForm = async () => {
+    setIsSubmitting(true);
+    setSubmitError('');
+
+    const payload = {
+      ...formData,
+      features: formData.features.join(', '),
+      submittedAt: new Date().toLocaleString('ko-KR', { timeZone: 'Asia/Seoul' }),
+    };
+
+    try {
+      await fetch(SCRIPT_URL, {
+        method: 'POST',
+        body: JSON.stringify(payload),
+      });
+      setIsSubmitted(true);
+    } catch (err) {
+      setSubmitError('제출 중 오류가 발생했습니다. 잠시 후 다시 시도해 주세요.');
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   const steps = [
@@ -384,30 +407,40 @@ export default function App() {
           </div>
 
           {/* 하단 네비게이션 버튼 */}
-          <div className="bg-white p-6 border-t border-slate-100 flex justify-between items-center rounded-b-2xl">
-            <button
-              onClick={prevStep}
-              disabled={step === 1}
-              className={`flex items-center px-4 py-2.5 text-sm font-bold rounded-xl transition-all ${step === 1 ? 'text-slate-300 cursor-not-allowed' : 'text-slate-600 hover:bg-slate-100'}`}
-            >
-              <ChevronLeft size={16} className="mr-1" /> 이전
-            </button>
-
-            {step < totalSteps ? (
-              <button
-                onClick={nextStep}
-                className="flex items-center px-7 py-3 bg-blue-600 text-white text-sm font-bold rounded-xl hover:bg-blue-700 shadow-lg shadow-blue-500/20 transition-all active:scale-95"
-              >
-                다음 단계로 <ChevronRight size={16} className="ml-1" />
-              </button>
-            ) : (
-              <button
-                onClick={submitForm}
-                className="flex items-center px-7 py-3 bg-slate-900 text-white text-sm font-bold rounded-xl hover:bg-slate-800 shadow-lg shadow-slate-900/20 transition-all active:scale-95"
-              >
-                <Send size={16} className="mr-2" /> 제출하기
-              </button>
+          <div className="bg-white p-6 border-t border-slate-100 rounded-b-2xl">
+            {submitError && (
+              <p className="text-sm text-red-500 font-medium text-center mb-4">{submitError}</p>
             )}
+            <div className="flex justify-between items-center">
+              <button
+                onClick={prevStep}
+                disabled={step === 1}
+                className={`flex items-center px-4 py-2.5 text-sm font-bold rounded-xl transition-all ${step === 1 ? 'text-slate-300 cursor-not-allowed' : 'text-slate-600 hover:bg-slate-100'}`}
+              >
+                <ChevronLeft size={16} className="mr-1" /> 이전
+              </button>
+
+              {step < totalSteps ? (
+                <button
+                  onClick={nextStep}
+                  className="flex items-center px-7 py-3 bg-blue-600 text-white text-sm font-bold rounded-xl hover:bg-blue-700 shadow-lg shadow-blue-500/20 transition-all active:scale-95"
+                >
+                  다음 단계로 <ChevronRight size={16} className="ml-1" />
+                </button>
+              ) : (
+                <button
+                  onClick={submitForm}
+                  disabled={isSubmitting}
+                  className="flex items-center px-7 py-3 bg-slate-900 text-white text-sm font-bold rounded-xl hover:bg-slate-800 shadow-lg shadow-slate-900/20 transition-all active:scale-95 disabled:opacity-60 disabled:cursor-not-allowed"
+                >
+                  {isSubmitting ? (
+                    <><Loader2 size={16} className="mr-2 animate-spin" /> 제출 중...</>
+                  ) : (
+                    <><Send size={16} className="mr-2" /> 제출하기</>
+                  )}
+                </button>
+              )}
+            </div>
           </div>
 
         </div>
