@@ -70,12 +70,9 @@ export default function App() {
     };
 
     try {
-      await fetch(SCRIPT_URL, {
-        method: 'POST',
-        mode: 'no-cors',
-        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-        body: 'data=' + encodeURIComponent(JSON.stringify(payload)),
-      });
+      const url = new URL(SCRIPT_URL);
+      url.searchParams.set('data', JSON.stringify(payload));
+      await fetch(url.toString(), { mode: 'no-cors' });
       setIsSubmitted(true);
     } catch (err) {
       setSubmitError('제출 중 오류가 발생했습니다. 잠시 후 다시 시도해 주세요.');

@@ -4,13 +4,9 @@
  * [배포 방법]
  * 1. Google Sheets 열기 → 확장 프로그램 → Apps Script
  * 2. 이 코드를 전체 붙여넣기 후 저장 (Ctrl+S)
- * 3. 우측 상단 '배포' → '새 배포' 클릭
- * 4. 유형: '웹 앱' 선택
- *    - 다음 사용자로 실행: 나 (Me)
- *    - 액세스 권한: 모든 사용자 (Anyone)
- * 5. '배포' 클릭 → 팝업에서 '액세스 승인' 진행
- * 6. 생성된 웹 앱 URL을 복사 → 프로젝트 .env 파일의
- *    VITE_GOOGLE_SCRIPT_URL 값으로 붙여넣기
+ * 3. 우측 상단 '배포' → '배포 관리' → ✏️ 편집
+ * 4. 버전: '새 버전' 선택 후 '배포' 클릭
+ *    (URL은 변경되지 않습니다)
  *
  * [시트 구조]
  * 스크립트가 최초 실행 시 'Leads'라는 이름의 시트를 자동 생성하고
@@ -54,34 +50,43 @@ function getOrCreateSheet() {
   return sheet;
 }
 
-function doPost(e) {
-  try {
-    const raw = e.parameter.data || e.postData.contents;
-    const data = JSON.parse(raw);
-    const sheet = getOrCreateSheet();
+function appendToSheet(data) {
+  const sheet = getOrCreateSheet();
+  sheet.appendRow([
+    data.submittedAt  || '',
+    data.companyName  || '',
+    data.serviceDesc  || '',
+    data.target       || '',
+    data.purpose      || '',
+    data.purposeOther || '',
+    data.ref1         || '',
+    data.ref2         || '',
+    data.brandColor   || '',
+    data.avoidStyle   || '',
+    data.menus        || '',
+    data.features     || '',
+    data.featureOther || '',
+    data.adminNeed    || '',
+    data.logoAsset    || '',
+    data.imageAsset   || '',
+    data.textAsset    || '',
+    data.deadline     || '',
+    data.budget       || '',
+    data.budgetOther  || '',
+  ]);
+}
 
-    sheet.appendRow([
-      data.submittedAt    || '',
-      data.companyName    || '',
-      data.serviceDesc    || '',
-      data.target         || '',
-      data.purpose        || '',
-      data.purposeOther   || '',
-      data.ref1           || '',
-      data.ref2           || '',
-      data.brandColor     || '',
-      data.avoidStyle     || '',
-      data.menus          || '',
-      data.features       || '',
-      data.featureOther   || '',
-      data.adminNeed      || '',
-      data.logoAsset      || '',
-      data.imageAsset     || '',
-      data.textAsset      || '',
-      data.deadline       || '',
-      data.budget         || '',
-      data.budgetOther    || '',
-    ]);
+// 메인 수신 함수 — GET 파라미터로 데이터를 수신합니다.
+function doGet(e) {
+  try {
+    if (!e.parameter.data) {
+      return ContentService
+        .createTextOutput(JSON.stringify({ result: 'ok' }))
+        .setMimeType(ContentService.MimeType.JSON);
+    }
+
+    const data = JSON.parse(e.parameter.data);
+    appendToSheet(data);
 
     return ContentService
       .createTextOutput(JSON.stringify({ result: 'success' }))
@@ -93,9 +98,19 @@ function doPost(e) {
   }
 }
 
-// Apps Script는 GET 요청도 처리해야 CORS preflight를 통과합니다.
-function doGet() {
-  return ContentService
-    .createTextOutput(JSON.stringify({ result: 'ok' }))
-    .setMimeType(ContentService.MimeType.JSON);
+// POST 폴백 (직접 호출 시 대비)
+function doPost(e) {
+  try {
+    const raw = (e.parameter && e.parameter.data) || e.postData.contents;
+    const data = JSON.parse(raw);
+    appendToSheet(data);
+
+    return ContentService
+      .createTextOutput(JSON.stringify({ result: 'success' }))
+      .setMimeType(ContentService.MimeType.JSON);
+  } catch (err) {
+    return ContentService
+      .createTextOutput(JSON.stringify({ result: 'error', message: err.message }))
+      .setMimeType(ContentService.MimeType.JSON);
+  }
 }
