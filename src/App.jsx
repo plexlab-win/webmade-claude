@@ -73,7 +73,8 @@ export default function App() {
       await fetch(SCRIPT_URL, {
         method: 'POST',
         mode: 'no-cors',
-        body: JSON.stringify(payload),
+        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+        body: 'data=' + encodeURIComponent(JSON.stringify(payload)),
       });
       setIsSubmitted(true);
     } catch (err) {
